@@ -4,6 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuickDesk - Help Desk Management</title>
+    <script>
+        // Global UI functions
+        window.showApp = function() {
+            console.log('showApp called');
+            const authScreen = document.getElementById('auth-screen');
+            const appScreen = document.getElementById('app-screen');
+            if (authScreen) authScreen.classList.add('hidden');
+            if (appScreen) appScreen.classList.remove('hidden');
+            if (typeof window.loadDashboard === 'function') {
+                window.loadDashboard();
+            }
+        };
+
+        window.showAuth = function() {
+            console.log('showAuth called');
+            const authScreen = document.getElementById('auth-screen');
+            const appScreen = document.getElementById('app-screen');
+            if (appScreen) appScreen.classList.add('hidden');
+            if (authScreen) authScreen.classList.remove('hidden');
+            if (typeof window.showLogin === 'function') {
+                window.showLogin();
+            }
+        };
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
     <script>
         // Fallback for Lucide icons if CDN fails
