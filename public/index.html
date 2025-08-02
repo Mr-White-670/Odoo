@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickDesk - Help Desk Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <script>
+        // Fallback for Lucide icons if CDN fails
+        if (typeof lucide === 'undefined') {
+            window.lucide = {
+                createIcons: function() {
+                    // Replace lucide icons with simple text alternatives
+                    const iconElements = document.querySelectorAll('[data-lucide]');
+                    iconElements.forEach(el => {
+                        const iconName = el.getAttribute('data-lucide');
+                        const iconMap = {
+                            'headphones': '🎧',
+                            'log-out': '🚪',
+                            'layout-dashboard': '📊',
+                            'plus-circle': '➕',
+                            'ticket': '🎫',
+                            'inbox': '📥',
+                            'settings': '⚙️',
+                            'send': '📤',
+                            'eye': '👁️',
+                            'thumbs-up': '👍',
+                            'thumbs-down': '👎',
+                            'user': '👤',
+                            'tag': '🏷️',
+                            'clock': '⏰',
+                            'user-check': '✅',
+                            'message-circle': '💬',
+                            'arrow-right': '➡️',
+                            'user-plus': '👥',
+                            'plus': '➕'
+                        };
+                        el.innerHTML = iconMap[iconName] || '●';
+                        el.style.display = 'inline';
+                        el.style.fontSize = '14px';
+                    });
+                }
+            };
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-admin { background: #ff6b6b; color: white; }
+        .role-agent { background: #4ecdc4; color: white; }
+        .role-user { background: #45b7d1; color: white; }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-btn:not(.active) {
+            background: #f8f9fa;
+            color: #666;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input, .filter-select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus, .filter-select:focus {
+            border-color: #667eea;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .ticket-grid {
+            display: grid;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .ticket-card.status-open { border-left-color: #ffc107; }
+        .ticket-card.status-in-progress { border-left-color: #17a2b8; }
+        .ticket-card.status-resolved { border-left-color: #28a745; }
+        .ticket-card.status-closed { border-left-color: #6c757d; }
+
+        .ticket-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            gap: 15px;
+        }
+
+        .ticket-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .ticket-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-in-progress { background: #d1ecf1; color: #0c5460; }
+        .status-resolved { background: #d4edda; color: #155724; }
+        .status-closed { background: #e2e3e5; color: #383d41; }
+
+        .ticket-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ticket-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .ticket-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            border-color: #667eea;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .thread {
+            border-left: 3px solid #667eea;
+            padding-left: 20px;
+            margin-top: 20px;
+        }
+
+        .thread-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .thread-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .thread-author {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .thread-time {
+            color: #666;
+        }
+
+        .vote-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .vote-btn {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .vote-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .ticket-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .ticket-meta {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .modal-content {
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Screen -->
+        <div id="auth-screen" class="auth-container">
+            <div class="logo" style="justify-content: center; margin-bottom: 30px;">
+                <i data-lucide="headphones"></i>
+                QuickDesk
+            </div>
+            
+            <div id="login-form">
+                <h2 style="text-align: center; margin-bottom: 30px;">Sign In</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+                </form>
+                <p style="text-align: center; margin-top: 20px;">
+                    Don't have an account? <a href="#" id="showRegisterLink" style="color: #667eea;">Register here</a>
+                </p>
+            </div>
+
+            <div id="register-form" class="hidden">
+                <h2 style="text-align: center; margin-bottom: 30px;">Register</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input" id="registerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="registerPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <select class="form-select" id="registerRole" required>
+                            <option value="user">End User</option>
+                           
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+                </form>
+                <p style="text-align: center; margin-top: 20px;">
+                    Already have an account? <a href="#" id="showLoginLink" style="color: #667eea;">Sign in here</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Main Application -->
+        <div id="app-screen" class="hidden">
+            <div class="header">
+                <div class="logo">
+                    <i data-lucide="headphones"></i>
+                    QuickDesk
+                </div>
+                <div class="user-info">
+                    <span id="userName">User Name</span>
+                    <span id="userRole" class="role-badge">User</span>
+                    <button class="btn btn-secondary" id="logoutButton">
+                        <i data-lucide="log-out"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- Navigation -->
+                <div class="dashboard-nav">
+                    <button class="nav-btn active" data-section="dashboard" id="dashboardNavBtn">
+                        <i data-lucide="layout-dashboard"></i>
+                        Dashboard
+                    </button>
+                    <button class="nav-btn" data-section="create-ticket" id="createTicketNavBtn">
+                        <i data-lucide="plus-circle"></i>
+                        Create Ticket
+                    </button>
+                    <button class="nav-btn" data-section="my-tickets" id="myTicketsNavBtn">
+                        <i data-lucide="ticket"></i>
+                        My Tickets
+                    </button>
+                    <button class="nav-btn hidden" data-section="all-tickets" id="allTicketsNavBtn">
+                        <i data-lucide="inbox"></i>
+                        All Tickets
+                    </button>
+                    <button class="nav-btn hidden" data-section="admin-panel" id="adminNavBtn">
+                        <i data-lucide="settings"></i>
+                        Admin Panel
+                    </button>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="section">
+                    <h2 style="margin-bottom: 20px;">Dashboard</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalTickets">0</div>
+                            <div class="stat-label">Total Tickets</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="openTickets">0</div>
+                            <div class="stat-label">Open Tickets</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="inProgressTickets">0</div>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="resolvedTickets">0</div>
+                            <div class="stat-label">Resolved</div>
+                        </div>
+                    </div>
+                    <div id="recentTickets"></div>
+                </div>
+
+                <!-- Create Ticket Section -->
+                <div id="create-ticket-section" class="section hidden">
+                    <h2 style="margin-bottom: 20px;">Create New Ticket</h2>
+                    <form id="createTicketForm">
+                        <div class="form-group">
+                            <label class="form-label">Subject *</label>
+                            <input type="text" class="form-input" id="ticketSubject" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category *</label>
+                            <select class="form-select" id="ticketCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="technical">Technical Support</option>
+                                <option value="billing">Billing</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="feature">Feature Request</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Description *</label>
+                            <textarea class="form-textarea" id="ticketDescription" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Attachment (Optional)</label>
+                            <input type="file" class="form-input" id="ticketAttachment">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="send"></i>
+                            Create Ticket
+                        </button>
+                    </form>
+                </div>
+
+                <!-- My Tickets Section -->
+                <div id="my-tickets-section" class="section hidden">
+                    <h2 style="margin-bottom: 20px;">My Tickets</h2>
+                    <div class="filters">
+                        <input type="text" class="search-input" id="myTicketsSearch" placeholder="Search tickets...">
+                        <select class="filter-select" id="myTicketsStatus">
+                            <option value="">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <select class="filter-select" id="myTicketsCategory">
+                            <option value="">All Categories</option>
+                            <option value="technical">Technical Support</option>
+                            <option value="billing">Billing</option>
+                            <option value="general">General Inquiry</option>
+                            <option value="feature">Feature Request</option>
+                        </select>
+                        <select class="filter-select" id="myTicketsSort">
+                            <option value="recent">Recently Modified</option>
+                            <option value="replies">Most Replied</option>
+                            <option value="created">Date Created</option>
+                        </select>
+                    </div>
+                    <div id="myTicketsList" class="ticket-grid"></div>
+                    <div id="myTicketsPagination" class="pagination"></div>
+                </div>
+
+                <!-- All Tickets Section (Agent/Admin) -->
+                <div id="all-tickets-section" class="section hidden">
+                    <h2 style="margin-bottom: 20px;">All Tickets</h2>
+                    <div class="filters">
+                        <input type="text" class="search-input" id="allTicketsSearch" placeholder="Search tickets...">
+                        <select class="filter-select" id="allTicketsStatus">
+                            <option value="">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <select class="filter-select" id="allTicketsCategory">
+                            <option value="">All Categories</option>
+                            <option value="technical">Technical Support</option>
+                            <option value="billing">Billing</option>
+                            <option value="general">General Inquiry</option>
+                            <option value="feature">Feature Request</option>
+                        </select>
+                        <select class="filter-select" id="allTicketsSort">
+                            <option value="recent">Recently Modified</option>
+                            <option value="replies">Most Replied</option>
+                            <option value="created">Date Created</option>
+                        </select>
+                    </div>
+                    <div id="allTicketsList" class="ticket-grid"></div>
+                    <div id="allTicketsPagination" class="pagination"></div>
+                </div>
+
+                <!-- Admin Panel Section -->
+                <div id="admin-panel-section" class="section hidden">
+                    <h2 style="margin-bottom: 20px;">Admin Panel</h2>
+                    
+                    <div style="display: grid; gap: 30px;">
+                        <div>
+                            <h3 style="margin-bottom: 15px;">User Management</h3>
+                            <div id="usersList"></div>
+                        </div>
+                        
+                        <div>
+                            <h3 style="margin-bottom: 15px;">Category Management</h3>
+                            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                                <input type="text" class="form-input" id="newCategoryName" placeholder="Category name">
+                                <button class="btn btn-primary" onclick="addCategory()">
+                                    <i data-lucide="plus"></i>
+                                    Add Category
+                                </button>
+                            </div>
+                            <div id="categoriesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Detail Modal -->
+        <div id="ticketModal" class="modal">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 id="modalTicketTitle">Ticket Details</h3>
+                    <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                
+                <div id="modalTicketContent"></div>
+                
+                <div id="modalTicketThread" class="thread"></div>
+                
+                <div id="modalTicketActions" style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">Add Comment</label>
+                        <textarea class="form-textarea" id="modalReplyText" placeholder="Enter your reply..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="addReply()">
+                            <i data-lucide="message-circle"></i>
+                            Add Reply
+                        </button>
+                        <div id="statusUpdateButtons"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8V9aIoUCq_9HTujlwqQDF5nEIAPbqQaQ",
+            authDomain: "odoo-e1a64.firebaseapp.com",
+            projectId: "odoo-e1a64",
+            storageBucket: "odoo-e1a64.appspot.com",
+            messagingSenderId: "757683472674",
+            appId: "1:757683472674:web:22e5beb313b7cc3ed43d7b",
+            measurementId: "G-L9RCMLDB3Y"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Initialize users array to store user data
+       
+
+        // Initialize UI elements
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginContainer = document.getElementById('login-form');
+        const registerContainer = document.getElementById('register-form');
+        const showLoginLink = document.getElementById('showLoginLink');
+        const showRegisterLink = document.getElementById('showRegisterLink');
+        const logoutButton = document.getElementById('logoutButton');
+
+        // --- Firebase Auth State Logic ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // Add user to users array if not already present
+                if (!users.some(u => u.uid === user.uid)) {
+                    users.push({
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName || user.email.split('@')[0]
+                    });
+                }
+                
+                let role = 'user';
+                if (user.email === 'admin@gmail.com') {
+                    role = 'admin';
+                } else if (user.email === 'agent@gmail.com') {
+                    role = 'agent';
+                }
+
+                currentUser = {
+                    uid: user.uid,
+                    email: user.email,
+                    name: user.displayName || user.email.split('@')[0],
+                    role: role
+                };
+                showApp();
+            } else {
+                currentUser = null;
+                showAuth();
+            }
+        });
+
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch(error => alert(error.message));
+        });
+
+        registerForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            createUserWithEmailAndPassword(auth, email, password)
+                .catch(error => alert(error.message));
+        });
+
+        logoutButton.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRegister();
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLogin();
+        });
+
+        // Toggle between login and register forms
+        function showRegister() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+        }
+
+        // Initialize Lucide icons with error handling
+        function initializeIcons() {
+            try {
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                console.log('Using fallback icons');
+                // Icons will be handled by the fallback system
+            }
+        }
+
+        // Application State
+        let currentUser = null;
+        let tickets = JSON.parse(localStorage.getItem('tickets')) || [];
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let categories = JSON.parse(localStorage.getItem('categories')) || ['technical', 'billing', 'general', 'feature'];
+        let currentSection = localStorage.getItem('currentSection') || 'dashboard';
+        let currentTicket = null;
+
+        // Save data to local storage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('tickets', JSON.stringify(tickets));
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.setItem('categories', JSON.stringify(categories));
+                localStorage.setItem('currentSection', currentSection);
+            } catch (error) {
+                console.error('Error saving to local storage:', error);
+            }
+        }
+
+        // Load initial data from local storage
+        function loadFromLocalStorage() {
+            try {
+                const savedTickets = localStorage.getItem('tickets');
+                const savedUsers = localStorage.getItem('users');
+                const savedCategories = localStorage.getItem('categories');
+                const savedSection = localStorage.getItem('currentSection');
+
+                if (savedTickets) tickets = JSON.parse(savedTickets);
+                if (savedUsers) users = JSON.parse(savedUsers);
+                if (savedCategories) categories = JSON.parse(savedCategories);
+                if (savedSection) currentSection = savedSection;
+
+                // Convert string dates back to Date objects
+                tickets.forEach(ticket => {
+                    if (ticket.createdAt && typeof ticket.createdAt === 'string') {
+                        ticket.createdAt = new Date(ticket.createdAt);
+                    }
+                    if (ticket.replies) {
+                        ticket.replies.forEach(reply => {
+                            if (reply.timestamp && typeof reply.timestamp === 'string') {
+                                reply.timestamp = new Date(reply.timestamp);
+                            }
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading from local storage:', error);
+            }
+        }
+
+        // Call this when the app initializes
+        loadFromLocalStorage();
+        
+        // --- Event Listeners ---
+        document.getElementById('dashboardNavBtn').addEventListener('click', () => showSection('dashboard'));
+        document.getElementById('createTicketNavBtn').addEventListener('click', () => showSection('create-ticket'));
+        document.getElementById('myTicketsNavBtn').addEventListener('click', () => showSection('my-tickets'));
+        document.getElementById('allTicketsNavBtn').addEventListener('click', () => showSection('all-tickets'));
+        document.getElementById('adminNavBtn').addEventListener('click', () => showSection('admin-panel'));
+
+        // Add form submission listeners
+        document.getElementById('createTicketForm').addEventListener('submit', handleCreateTicket);
+        
+        // Add search and filter listeners
+        ['myTicketsSearch', 'allTicketsSearch'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', debounce(filterTickets, 300));
+            }
+        });
+        
+        ['myTicketsStatus', 'myTicketsCategory', 'myTicketsSort', 
+         'allTicketsStatus', 'allTicketsCategory', 'allTicketsSort'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', filterTickets);
+            }
+        });
+
+        // Initialize the application
+        function init() {
+            // Initialize icons
+            initializeIcons();
+            
+            // Add navigation event listeners
+            document.getElementById('dashboardNavBtn').addEventListener('click', () => showSection('dashboard'));
+            document.getElementById('createTicketNavBtn').addEventListener('click', () => showSection('create-ticket'));
+            document.getElementById('myTicketsNavBtn').addEventListener('click', () => showSection('my-tickets'));
+            document.getElementById('allTicketsNavBtn').addEventListener('click', () => showSection('all-tickets'));
+            document.getElementById('adminNavBtn').addEventListener('click', () => showSection('admin-panel'));
+
+            // Add form submission listeners
+            document.getElementById('createTicketForm').addEventListener('submit', handleCreateTicket);
+            
+            // Add search and filter listeners
+            ['myTicketsSearch', 'allTicketsSearch'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', debounce(filterTickets, 300));
+                }
+            });
+            
+            ['myTicketsStatus', 'myTicketsCategory', 'myTicketsSort', 
+             'allTicketsStatus', 'allTicketsCategory', 'allTicketsSort'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', filterTickets);
+                }
+            });
+        }
+
+        // Navigation Functions
+        function showSection(sectionName) {
+            // Update navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+            
+            // Update sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(`${sectionName}-section`).classList.remove('hidden');
+            
+            currentSection = sectionName;
+            saveToLocalStorage();
+            
+            // Load section data
+            switch (sectionName) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'my-tickets':
+                    loadMyTickets();
+                    break;
+                case 'all-tickets':
+                    loadAllTickets();
+                    break;
+                case 'admin-panel':
+                    loadAdminPanel();
+                    break;
+            }
+        }
+
+        // Ticket Functions
+        function handleCreateTicket(e) {
+            e.preventDefault();
+            
+            const subject = document.getElementById('ticketSubject').value;
+            const category = document.getElementById('ticketCategory').value;
+            const description = document.getElementById('ticketDescription').value;
+            const attachment = document.getElementById('ticketAttachment').files[0];
+            
+            const newTicket = {
+                id: Date.now().toString(),
+                subject,
+                description,
+                category,
+                status: 'open',
+                createdAt: new Date(),
+                createdBy: currentUser.uid,
+                upvotes: 0,
+                downvotes: 0,
+                replies: [],
+                attachment: attachment ? attachment.name : null
+            };
+            
+            tickets.push(newTicket);
+            
+            // Save to local storage
+            saveToLocalStorage();
+            
+            // Reset form
+            document.getElementById('createTicketForm').reset();
+            
+            showNotification('Ticket created successfully!', 'success');
+            
+            // Simulate email notification
+            setTimeout(() => {
+                showNotification('Email notification sent!', 'info');
+            }, 1000);
+            
+            // Redirect to my tickets
+            showSection('my-tickets');
+        }
+
+        function loadDashboard() {
+            const userTickets = currentUser.role === 'user' 
+                ? tickets.filter(t => t.createdBy === currentUser.uid)
+                : tickets;
+            
+            // Update stats
+            document.getElementById('totalTickets').textContent = userTickets.length;
+            document.getElementById('openTickets').textContent = userTickets.filter(t => t.status === 'open').length;
+            document.getElementById('inProgressTickets').textContent = userTickets.filter(t => t.status === 'in-progress').length;
+            document.getElementById('resolvedTickets').textContent = userTickets.filter(t => t.status === 'resolved').length;
+            
+            // Show recent tickets
+            const recentTickets = userTickets
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                .slice(0, 5);
+            
+            document.getElementById('recentTickets').innerHTML = `
+                <h3 style="margin-bottom: 15px;">Recent Tickets</h3>
+                <div class="ticket-grid">
+                    ${recentTickets.map(ticket => createTicketCard(ticket)).join('')}
+                </div>
+            `;
+        }
+
+        function loadMyTickets() {
+            const userTickets = tickets.filter(t => t.createdBy === currentUser.uid);
+            renderTickets(userTickets, 'myTicketsList', 'myTicketsPagination');
+        }
+
+        function loadAllTickets() {
+            if (currentUser.role === 'user') return;
+            renderTickets(tickets, 'allTicketsList', 'allTicketsPagination');
+        }
+
+        function renderTickets(ticketList, containerId, paginationId) {
+            const filteredTickets = filterTicketsList(ticketList);
+            const container = document.getElementById(containerId);
+            
+            if (filteredTickets.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No tickets found.</p>';
+                return;
+            }
+            
+            container.innerHTML = filteredTickets.map(ticket => createTicketCard(ticket)).join('');
+            
+            // Simple pagination (showing all results for now)
+            document.getElementById(paginationId).innerHTML = '';
+        }
+
+        function createTicketCard(ticket) {
+            // Check if ticket exists and has required properties
+            if (!ticket || typeof ticket !== 'object') {
+                console.error("Invalid ticket data:", ticket);
+                return '<div class="ticket-card error">Error: Invalid ticket data</div>';
+            }
+
+            // Safely get all required properties with defaults
+            const safeTicket = {
+                id: String(ticket.id || 'unknown'),
+                subject: String(ticket.subject || 'No Subject'),
+                description: String(ticket.description || 'No description available'),
+                category: String(ticket.category || 'uncategorized'),
+                status: String(ticket.status || 'open'),
+                createdAt: ticket.createdAt ? new Date(ticket.createdAt) : new Date(),
+                upvotes: typeof ticket.upvotes === 'number' ? Math.max(0, ticket.upvotes) : 0,
+                downvotes: typeof ticket.downvotes === 'number' ? Math.max(0, ticket.downvotes) : 0,
+                createdBy: String(ticket.createdBy || 'unknown'),
+                assignedTo: ticket.assignedTo ? String(ticket.assignedTo) : null,
+                replies: Array.isArray(ticket.replies) ? ticket.replies : []
+            };
+
+            // Safely get creator name with fallbacks
+            let creatorName = 'Unknown User';
+            try {
+                if (currentUser && safeTicket.createdBy === currentUser.uid) {
+                    creatorName = currentUser.name || currentUser.email || 'You';
+                } else if (Array.isArray(users)) {
+                    const creator = users.find(u => u && u.uid === safeTicket.createdBy);
+                    if (creator) creatorName = creator.name || creator.email || 'User';
+                }
+            } catch (error) {
+                console.error("Error getting creator name:", error);
+            }
+
+            // Safely format date
+            let formattedDate = 'Unknown date';
+            try {
+                if (safeTicket.createdAt instanceof Date && !isNaN(safeTicket.createdAt)) {
+                    formattedDate = safeTicket.createdAt.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+            } catch (error) {
+                console.error("Error formatting date:", error);
+            }
+
+            // Get assignee name if exists
+            let assigneeInfo = '';
+            try {
+                if (safeTicket.assignedTo) {
+                    let assigneeName = 'Unassigned';
+                    if (Array.isArray(users)) {
+                        const assignee = users.find(u => u && u.uid === safeTicket.assignedTo);
+                        if (assignee) {
+                            assigneeName = assignee.name || assignee.email || 'Agent';
+                        }
+                    }
+                    assigneeInfo = `<span><i data-lucide="user-check"></i> ${escapeHtml(assigneeName)}</span>`;
+                }
+            } catch (error) {
+                console.error("Error getting assignee info:", error);
+            }
+
+            // Create and return the ticket card HTML
+            try {
+                // Get creator and assignee with safe defaults
+                const creator = users.find(u => u && u.uid === safeTicket.createdBy) || {};
+                const assignee = safeTicket.assignedTo ? (users.find(u => u && u.uid === safeTicket.assignedTo) || {}) : null;
+                
+                // Format date
+                const formatDate = (date) => {
+                    try {
+                        return date instanceof Date && !isNaN(date) 
+                            ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                            : 'Unknown date';
+                    } catch (e) {
+                        console.error("Error formatting date:", e);
+                        return 'Unknown date';
+                    }
+                };
+
+                saveToLocalStorage();
+                return `
+                    <div class="ticket-card status-${escapeHtml(safeTicket.status)}">
+                        <div class="ticket-header">
+                            <div class="ticket-title">${escapeHtml(safeTicket.subject)}</div>
+                            <div class="ticket-status status-${escapeHtml(safeTicket.status)}">
+                                ${escapeHtml((safeTicket.status || '').replace(/-/g, ' '))}
+                            </div>
+                        </div>
+                        <div class="ticket-meta">
+                            <span><i data-lucide="user"></i> ${escapeHtml(creator?.name || creator?.email || 'Unknown User')}</span>
+                            <span><i data-lucide="tag"></i> ${escapeHtml(safeTicket.category)}</span>
+                            <span><i data-lucide="clock"></i> ${formatDate(safeTicket.createdAt)}</span>
+                            ${assignee ? `<span><i data-lucide="user-check"></i> ${escapeHtml(assignee.name || assignee.email || 'Unassigned')}</span>` : ''}
+                        </div>
+                        <div class="ticket-description">
+                            ${escapeHtml((safeTicket.description || '').substring(0, 100))}${(safeTicket.description || '').length > 100 ? '...' : ''}
+                        </div>
+                        <div class="ticket-actions">
+                            <button class="btn btn-primary" onclick="openTicketModal(${escapeHtml(JSON.stringify(safeTicket.id))})">
+                                <i data-lucide="eye"></i> View Details
+                            </button>
+                            <div class="vote-buttons">
+                                <button class="vote-btn" onclick="voteTicket(${escapeHtml(JSON.stringify(safeTicket.id))}, 'up')">
+                                    <i data-lucide="thumbs-up"></i> ${safeTicket.upvotes}
+                                </button>
+                                <button class="vote-btn" onclick="voteTicket(${escapeHtml(JSON.stringify(safeTicket.id))}, 'down')">
+                                    <i data-lucide="thumbs-down"></i> ${safeTicket.downvotes}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Error generating ticket card HTML:", error);
+                return `
+                    <div class="ticket-card error">
+                        <div class="ticket-header">
+                            <div class="ticket-title">Error Loading Ticket</div>
+                        </div>
+                        <div class="ticket-description">
+                            There was an error displaying this ticket. Please try again later.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function filterTicketsList(ticketList) {
+            const searchTerm = document.getElementById(`${currentSection === 'my-tickets' ? 'myTickets' : 'allTickets'}Search`).value.toLowerCase();
+            const statusFilter = document.getElementById(`${currentSection === 'my-tickets' ? 'myTickets' : 'allTickets'}Status`).value;
+            const categoryFilter = document.getElementById(`${currentSection === 'my-tickets' ? 'myTickets' : 'allTickets'}Category`).value;
+            const sortBy = document.getElementById(`${currentSection === 'my-tickets' ? 'myTickets' : 'allTickets'}Sort`).value;
+            
+            let filtered = ticketList.filter(ticket => {
+                const matchesSearch = !searchTerm || 
+                    ticket.subject.toLowerCase().includes(searchTerm) ||
+                    ticket.description.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || ticket.status === statusFilter;
+                const matchesCategory = !categoryFilter || ticket.category === categoryFilter;
+                
+                return matchesSearch && matchesStatus && matchesCategory;
+            });
+            
+            // Sort tickets
+            filtered.sort((a, b) => {
+                switch (sortBy) {
+                    case 'recent':
+                        return new Date(b.updatedAt) - new Date(a.updatedAt);
+                    case 'replies':
+                        return b.replies.length - a.replies.length;
+                    case 'created':
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    default:
+                        return 0;
+                }
+            });
+            
+            return filtered;
+        }
+
+        function filterTickets() {
+            if (currentSection === 'my-tickets') {
+                loadMyTickets();
+            } else if (currentSection === 'all-tickets') {
+                loadAllTickets();
+            }
+        }
+
+        function voteTicket(ticketId, type) {
+            const ticket = tickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            if (type === 'up') {
+                ticket.upvotes++;
+            } else {
+                ticket.downvotes++;
+            }
+            
+            // Reload current section
+            if (currentSection === 'dashboard') loadDashboard();
+            else if (currentSection === 'my-tickets') loadMyTickets();
+            else if (currentSection === 'all-tickets') loadAllTickets();
+            
+            showNotification(`Vote ${type === 'up' ? 'up' : 'down'} recorded!`, 'success');
+            saveToLocalStorage();
+        }
+
+        // Modal Functions
+        function openTicketModal(ticketId) {
+            const ticket = tickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            currentTicket = ticket;
+
+            // Safely get creator name
+            let creatorName = 'Unknown User';
+            if (currentUser && ticket.createdBy === currentUser.uid) {
+                creatorName = currentUser.name || currentUser.email || 'You';
+            } else if (ticket.createdBy) {
+                const creator = users.find(u => u.uid === ticket.createdBy);
+                if (creator) creatorName = creator.name || creator.email || 'User';
+            }
+
+            // Safely format date
+            const formattedDate = ticket.createdAt.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // Get assignee name if exists
+            let assigneeInfo = '';
+            if (ticket.assignedTo) {
+                const assignee = users.find(u => u.uid === ticket.assignedTo);
+                const assigneeName = assignee ? (assignee.name || assignee.email || 'Agent') : 'Unknown Agent';
+                assigneeInfo = `<span><i data-lucide="user-check"></i> ${escapeHtml(assigneeName)}</span>`;
+            }
+
+            // Create and return the ticket card HTML
+            document.getElementById('modalTicketTitle').textContent = ticket.subject;
+            document.getElementById('modalTicketContent').innerHTML = `
+                <div class="ticket-meta">
+                    <span><strong>Status:</strong> <span class="ticket-status status-${ticket.status}">${ticket.status.replace('-', ' ')}</span></span>
+                    <span><strong>Category:</strong> ${ticket.category}</span>
+                    <span><strong>Created by:</strong> ${creatorName}</span>
+                    <span><strong>Created:</strong> ${formattedDate}</span>
+                    ${assigneeInfo}
+                    ${ticket.attachment ? `<span><strong>Attachment:</strong> ${ticket.attachment}</span>` : ''}
+                </div>
+                <div style="margin: 20px 0;">
+                    <strong>Description:</strong>
+                    <p style="margin-top: 10px; line-height: 1.6;">${ticket.description}</p>
+                </div>
+            `;
+            
+            // Render conversation thread
+            renderTicketThread(ticket);
+            
+            // Render status update buttons for agents/admins
+            renderStatusButtons(ticket);
+            
+            document.getElementById('ticketModal').classList.add('active');
+            initializeIcons();
+        }
+
+        function renderTicketThread(ticket) {
+            const threadHtml = ticket.replies.map(reply => `
+                <div class="thread-item">
+                    <div class="thread-header">
+                        <span class="thread-author">${reply.author}</span>
+                        <span class="thread-time">${formatDate(reply.timestamp)}</span>
+                    </div>
+                    <div>${reply.content}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('modalTicketThread').innerHTML = threadHtml || '<p style="text-align: center; color: #666;">No replies yet.</p>';
+        }
+
+        function renderStatusButtons(ticket) {
+            let buttonsHtml = '';
+            
+            if (currentUser.role === 'agent' || currentUser.role === 'admin') {
+                const statuses = ['open', 'in-progress', 'resolved', 'closed'];
+                const nextStatus = getNextStatus(ticket.status);
+                
+                if (nextStatus) {
+                    buttonsHtml = `
+                        <button class="btn btn-warning" onclick="updateTicketStatus('${nextStatus}')">
+                            <i data-lucide="arrow-right"></i>
+                            Mark as ${nextStatus.replace('-', ' ')}
+                        </button>
+                    `;
+                }
+                
+                if (ticket.assignedTo !== currentUser.id && currentUser.role === 'agent') {
+                    buttonsHtml += `
+                        <button class="btn btn-success" onclick="assignToMe()">
+                            <i data-lucide="user-plus"></i>
+                            Assign to Me
+                        </button>
+                    `;
+                }
+            }
+            
+            document.getElementById('statusUpdateButtons').innerHTML = buttonsHtml;
+        }
+
+        function getNextStatus(currentStatus) {
+            const statusFlow = {
+                'open': 'in-progress',
+                'in-progress': 'resolved',
+                'resolved': 'closed'
+            };
+            return statusFlow[currentStatus];
+        }
+
+        function addReply() {
+            const replyText = document.getElementById('modalReplyText').value.trim();
+            if (!replyText) {
+                showNotification('Please enter a reply!', 'error');
+                return;
+            }
+            
+            const newReply = {
+                id: currentTicket.replies.length + 1,
+                author: currentUser.name,
+                content: replyText,
+                timestamp: new Date(),
+                isAgent: currentUser.role === 'agent' || currentUser.role === 'admin'
+            };
+            
+            currentTicket.replies.push(newReply);
+            currentTicket.updatedAt = new Date();
+            
+            document.getElementById('modalReplyText').value = '';
+            renderTicketThread(currentTicket);
+            
+            showNotification('Reply added successfully!', 'success');
+            saveToLocalStorage();
+            
+            // Simulate email notification
+            setTimeout(() => {
+                showNotification('Email notification sent to ticket creator!', 'info');
+            }, 1000);
+        }
+
+        function updateTicketStatus(newStatus) {
+            currentTicket.status = newStatus;
+            currentTicket.updatedAt = new Date();
+            
+            // Close modal and refresh view
+            closeModal();
+            
+            // Reload current section
+            if (currentSection === 'dashboard') loadDashboard();
+            else if (currentSection === 'my-tickets') loadMyTickets();
+            else if (currentSection === 'all-tickets') loadAllTickets();
+            
+            showNotification(`Ticket status updated to ${newStatus.replace('-', ' ')}!`, 'success');
+            saveToLocalStorage();
+            
+            // Simulate email notification
+            setTimeout(() => {
+                showNotification('Status change notification sent!', 'info');
+            }, 1000);
+        }
+
+        function assignToMe() {
+            currentTicket.assignedTo = currentUser.id;
+            currentTicket.updatedAt = new Date();
+            
+            renderStatusButtons(currentTicket);
+            showNotification('Ticket assigned to you!', 'success');
+            saveToLocalStorage();
+        }
+
+        function closeModal() {
+            document.getElementById('ticketModal').classList.remove('active');
+            currentTicket = null;
+        }
+
+        // Admin Functions
+        function loadAdminPanel() {
+            if (currentUser.role !== 'admin') return;
+            
+            // Load users
+            const usersHtml = users.map(user => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                    <div>
+                        <strong>${user.name}</strong> (${user.email})
+                        <span class="role-badge role-${user.role}">${user.role}</span>
+                    </div>
+                    <div>
+                        <select onchange="updateUserRole(${user.uid}, this.value)" style="padding: 5px; margin-right: 10px;">
+                            <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                            <option value="agent" ${user.role === 'agent' ? 'selected' : ''}>Agent</option>
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        ${user.uid !== currentUser.uid ? `<button class="btn btn-danger" onclick="deleteUser(${user.uid})">Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('usersList').innerHTML = usersHtml;
+            
+            // Load categories
+            const categoriesHtml = categories.map(category => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                    <span style="text-transform: capitalize;">${category}</span>
+                    <button class="btn btn-danger" onclick="deleteCategory('${category}')">Delete</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('categoriesList').innerHTML = categoriesHtml;
+        }
+
+        function updateUserRole(userId, newRole) {
+            const user = users.find(u => u.uid === userId);
+            if (user) {
+                user.role = newRole;
+                showNotification(`User role updated to ${newRole}!`, 'success');
+                loadAdminPanel();
+                saveToLocalStorage();
+            }
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                const index = users.findIndex(u => u.uid === userId);
+                if (index > -1) {
+                    users.splice(index, 1);
+                    showNotification('User deleted successfully!', 'success');
+                    loadAdminPanel();
+                    saveToLocalStorage();
+                }
+            }
+        }
+
+        function addCategory() {
+            const categoryName = document.getElementById('newCategoryName').value.trim().toLowerCase();
+            if (!categoryName) {
+                showNotification('Please enter a category name!', 'error');
+                return;
+            }
+            
+            if (categories.includes(categoryName)) {
+                showNotification('Category already exists!', 'error');
+                return;
+            }
+            
+            categories.push(categoryName);
+            document.getElementById('newCategoryName').value = '';
+            
+            // Update category selects
+            updateCategorySelects();
+            
+            showNotification('Category added successfully!', 'success');
+            loadAdminPanel();
+            saveToLocalStorage();
+        }
+
+        function deleteCategory(categoryName) {
+            if (confirm('Are you sure you want to delete this category?')) {
+                const index = categories.indexOf(categoryName);
+                if (index > -1) {
+                    categories.splice(index, 1);
+                    updateCategorySelects();
+                    showNotification('Category deleted successfully!', 'success');
+                    loadAdminPanel();
+                    saveToLocalStorage();
+                }
+            }
+        }
+
+        function updateCategorySelects() {
+            const selects = ['ticketCategory', 'myTicketsCategory', 'allTicketsCategory'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    const firstOption = select.querySelector('option').outerHTML;
+                    select.innerHTML = firstOption + categories.map(cat => 
+                        `<option value="${cat}" ${currentValue === cat ? 'selected' : ''}>${cat.charAt(0).toUpperCase() + cat.slice(1)}</option>`
+                    ).join('');
+                }
+            });
+        }
+
+        // Utility Functions
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // Set background color based on type
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            notification.style.backgroundColor = colors[type] || colors.info;
+            notification.textContent = message;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); }
+                    to { transform: translateX(0); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 4000);
+        }
+
+        // Helper function to prevent XSS
+        function escapeHtml(unsafe) {
+            if (unsafe === null || unsafe === undefined) return '';
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>
