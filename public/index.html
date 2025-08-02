@@ -539,7 +539,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-input" id="loginPassword" required>
+                        <input type="password" class="form-input" id="loginPassword" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
                 </form>
@@ -561,7 +561,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-input" id="registerPassword" required>
+                        <input type="password" class="form-input" id="registerPassword" autocomplete="new-password" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Role</label>
@@ -598,15 +598,15 @@
             <div class="main-content">
                 <!-- Navigation -->
                 <div class="dashboard-nav">
-                    <button class="nav-btn active" data-section="dashboard" id="dashboardNavBtn">
+                    <button class="nav-btn hidden" data-section="dashboard" id="dashboardNavBtn">
                         <i data-lucide="layout-dashboard"></i>
                         Dashboard
                     </button>
-                    <button class="nav-btn" data-section="create-ticket" id="createTicketNavBtn">
+                    <button class="nav-btn hidden" data-section="create-ticket" id="createTicketNavBtn">
                         <i data-lucide="plus-circle"></i>
                         Create Ticket
                     </button>
-                    <button class="nav-btn" data-section="my-tickets" id="myTicketsNavBtn">
+                    <button class="nav-btn hidden" data-section="my-tickets" id="myTicketsNavBtn">
                         <i data-lucide="ticket"></i>
                         My Tickets
                     </button>
@@ -622,7 +622,7 @@
 
                 <!-- Dashboard Section -->
                 <div id="dashboard-section" class="section">
-                    <h2 style="margin-bottom: 20px;">Dashboard</h2>
+                    <h2 id="dashboardTitle" style="margin-bottom: 20px;">Dashboard</h2>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-number" id="totalTickets">0</div>
@@ -810,10 +810,39 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Initialize users array to store user data
-       
+        // Initialize application data immediately
+        let currentUser = null;
+        let tickets = [];
+        let users = [];
+        let categories = [];
+        let currentSection = 'dashboard';
+        let currentTicket = null;
 
-        // Initialize UI elements
+        try {
+            // Load users from localStorage if available
+            const savedUsers = localStorage.getItem('users');
+            users = savedUsers ? JSON.parse(savedUsers) : [];
+            console.log('Initialized users array with', users.length, 'users');
+            
+            // Load other data
+            const savedTickets = localStorage.getItem('tickets');
+            const savedCategories = localStorage.getItem('categories');
+            const savedSection = localStorage.getItem('currentSection');
+            
+            tickets = savedTickets ? JSON.parse(savedTickets) : [];
+            categories = savedCategories ? JSON.parse(savedCategories) : ['technical', 'billing', 'general', 'feature'];
+            currentSection = savedSection || 'dashboard';
+            
+        } catch (error) {
+            console.error('Error initializing app data:', error);
+            // Reset to defaults on error
+            users = [];
+            tickets = [];
+            categories = ['technical', 'billing', 'general', 'feature'];
+            currentSection = 'dashboard';
+        }
+
+        // UI Elements
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
         const loginForm = document.getElementById('loginForm');
@@ -823,9 +852,10 @@
         const showLoginLink = document.getElementById('showLoginLink');
         const showRegisterLink = document.getElementById('showRegisterLink');
         const logoutButton = document.getElementById('logoutButton');
-
+        
         // --- Firebase Auth State Logic ---
         onAuthStateChanged(auth, user => {
+            console.log('Auth state changed, user:', user ? user.email : 'No user');
             if (user) {
                 // Add user to users array if not already present
                 if (!users.some(u => u.uid === user.uid)) {
@@ -834,14 +864,21 @@
                         email: user.email,
                         displayName: user.displayName || user.email.split('@')[0]
                     });
+                    // Save updated users array to localStorage
+                    localStorage.setItem('users', JSON.stringify(users));
                 }
                 
+                // Determine user role
                 let role = 'user';
-                if (user.email === 'admin@gmail.com') {
+                const email = user.email.toLowerCase();
+                
+                if (email === 'admin@gmail.com') {
                     role = 'admin';
-                } else if (user.email === 'agent@gmail.com') {
+                } else if (email === 'agent@gmail.com') {
                     role = 'agent';
                 }
+                
+                console.log('Setting user role to:', role, 'for email:', email);
 
                 currentUser = {
                     uid: user.uid,
@@ -849,8 +886,50 @@
                     name: user.displayName || user.email.split('@')[0],
                     role: role
                 };
+
+                console.log('User authenticated:', { 
+                    email: user.email, 
+                    role: role,
+                    currentUser: currentUser 
+                });
+
+                console.log('Calling updateNavigationForRole with role:', role);
+                updateNavigationForRole(role);
+
+                // Update the UI with user information
+                const userNameElement = document.getElementById('userName');
+                const userRoleElement = document.getElementById('userRole');
+                
+                if (userNameElement) {
+                    console.log('Updating username element:', currentUser.name);
+                    userNameElement.textContent = currentUser.name;
+                }
+                
+                if (userRoleElement) {
+                    console.log('Updating role element:', role);
+                    userRoleElement.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                    userRoleElement.className = 'role-badge';
+                    userRoleElement.classList.add(`role-${role}`);
+                }
+                
+                // Force reload dashboard to ensure latest data
+                console.log('Loading dashboard data');
+                loadDashboard();
+                
+                // Show the app interface
+                console.log('Calling showApp()');
                 showApp();
+                
+                // If admin, show admin panel by default
+                if (role === 'admin') {
+                    console.log('Admin detected, showing admin panel');
+                    setTimeout(() => {
+                        console.log('Attempting to show admin panel');
+                        showSection('admin-panel');
+                    }, 300);
+                }
             } else {
+                console.log('No user signed in');
                 currentUser = null;
                 showAuth();
             }
@@ -899,143 +978,55 @@
             document.getElementById('login-form').classList.remove('hidden');
         }
 
-        // Initialize Lucide icons with error handling
-        function initializeIcons() {
-            try {
-                if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                    lucide.createIcons();
-                }
-            } catch (error) {
-                console.log('Using fallback icons');
-                // Icons will be handled by the fallback system
-            }
-        }
-
-        // Application State
-        let currentUser = null;
-        let tickets = JSON.parse(localStorage.getItem('tickets')) || [];
-        let users = JSON.parse(localStorage.getItem('users')) || [];
-        let categories = JSON.parse(localStorage.getItem('categories')) || ['technical', 'billing', 'general', 'feature'];
-        let currentSection = localStorage.getItem('currentSection') || 'dashboard';
-        let currentTicket = null;
-
-        // Save data to local storage
-        function saveToLocalStorage() {
-            try {
-                localStorage.setItem('tickets', JSON.stringify(tickets));
-                localStorage.setItem('users', JSON.stringify(users));
-                localStorage.setItem('categories', JSON.stringify(categories));
-                localStorage.setItem('currentSection', currentSection);
-            } catch (error) {
-                console.error('Error saving to local storage:', error);
-            }
-        }
-
-        // Load initial data from local storage
-        function loadFromLocalStorage() {
-            try {
-                const savedTickets = localStorage.getItem('tickets');
-                const savedUsers = localStorage.getItem('users');
-                const savedCategories = localStorage.getItem('categories');
-                const savedSection = localStorage.getItem('currentSection');
-
-                if (savedTickets) tickets = JSON.parse(savedTickets);
-                if (savedUsers) users = JSON.parse(savedUsers);
-                if (savedCategories) categories = JSON.parse(savedCategories);
-                if (savedSection) currentSection = savedSection;
-
-                // Convert string dates back to Date objects
-                tickets.forEach(ticket => {
-                    if (ticket.createdAt && typeof ticket.createdAt === 'string') {
-                        ticket.createdAt = new Date(ticket.createdAt);
-                    }
-                    if (ticket.replies) {
-                        ticket.replies.forEach(reply => {
-                            if (reply.timestamp && typeof reply.timestamp === 'string') {
-                                reply.timestamp = new Date(reply.timestamp);
-                            }
-                        });
-                    }
-                });
-            } catch (error) {
-                console.error('Error loading from local storage:', error);
-            }
-        }
-
-        // Call this when the app initializes
-        loadFromLocalStorage();
-        
-        // --- Event Listeners ---
-        document.getElementById('dashboardNavBtn').addEventListener('click', () => showSection('dashboard'));
-        document.getElementById('createTicketNavBtn').addEventListener('click', () => showSection('create-ticket'));
-        document.getElementById('myTicketsNavBtn').addEventListener('click', () => showSection('my-tickets'));
-        document.getElementById('allTicketsNavBtn').addEventListener('click', () => showSection('all-tickets'));
-        document.getElementById('adminNavBtn').addEventListener('click', () => showSection('admin-panel'));
-
-        // Add form submission listeners
-        document.getElementById('createTicketForm').addEventListener('submit', handleCreateTicket);
-        
-        // Add search and filter listeners
-        ['myTicketsSearch', 'allTicketsSearch'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('input', debounce(filterTickets, 300));
-            }
-        });
-        
-        ['myTicketsStatus', 'myTicketsCategory', 'myTicketsSort', 
-         'allTicketsStatus', 'allTicketsCategory', 'allTicketsSort'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('change', filterTickets);
-            }
-        });
-
         // Initialize the application
         function init() {
             // Initialize icons
             initializeIcons();
             
-            // Add navigation event listeners
-            document.getElementById('dashboardNavBtn').addEventListener('click', () => showSection('dashboard'));
-            document.getElementById('createTicketNavBtn').addEventListener('click', () => showSection('create-ticket'));
-            document.getElementById('myTicketsNavBtn').addEventListener('click', () => showSection('my-tickets'));
-            document.getElementById('allTicketsNavBtn').addEventListener('click', () => showSection('all-tickets'));
-            document.getElementById('adminNavBtn').addEventListener('click', () => showSection('admin-panel'));
+            // Initialize UI components
+            setupEventListeners();
+            
+            console.log('Application initialized');
+        }
 
-            // Add form submission listeners
-            document.getElementById('createTicketForm').addEventListener('submit', handleCreateTicket);
-            
-            // Add search and filter listeners
-            ['myTicketsSearch', 'allTicketsSearch'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('input', debounce(filterTickets, 300));
+        // Initialize Lucide icons with error handling
+        function initializeIcons() {
+            try {
+                if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                    lucide.createIcons();
+                    console.log('Lucide icons initialized');
+                } else {
+                    console.warn('Lucide not available, using fallback icons');
                 }
-            });
-            
-            ['myTicketsStatus', 'myTicketsCategory', 'myTicketsSort', 
-             'allTicketsStatus', 'allTicketsCategory', 'allTicketsSort'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', filterTickets);
-                }
-            });
+            } catch (error) {
+                console.error('Error initializing icons:', error);
+            }
         }
 
         // Navigation Functions
         function showSection(sectionName) {
+            console.log('Showing section:', sectionName);
+            
             // Update navigation
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+            const activeButton = document.querySelector(`[data-section="${sectionName}"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
             
             // Update sections
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.add('hidden');
             });
-            document.getElementById(`${sectionName}-section`).classList.remove('hidden');
+            
+            const sectionElement = document.getElementById(`${sectionName}-section`);
+            if (sectionElement) {
+                sectionElement.classList.remove('hidden');
+            } else {
+                console.error('Section not found:', sectionName);
+            }
             
             currentSection = sectionName;
             saveToLocalStorage();
@@ -1100,6 +1091,19 @@
         }
 
         function loadDashboard() {
+            // Update navigation based on role first
+            if (currentUser && currentUser.role) {
+                updateNavigationForRole(currentUser.role);
+                
+                // Set the page title based on role
+                const roleTitles = {
+                    'admin': 'Admin Dashboard',
+                    'agent': 'Agent Dashboard',
+                    'user': 'My Dashboard'
+                };
+                document.getElementById('dashboardTitle').textContent = roleTitles[currentUser.role] || 'Dashboard';
+            }
+
             const userTickets = currentUser.role === 'user' 
                 ? tickets.filter(t => t.createdBy === currentUser.uid)
                 : tickets;
@@ -1203,10 +1207,8 @@
                 if (safeTicket.assignedTo) {
                     let assigneeName = 'Unassigned';
                     if (Array.isArray(users)) {
-                        const assignee = users.find(u => u && u.uid === safeTicket.assignedTo);
-                        if (assignee) {
-                            assigneeName = assignee.name || assignee.email || 'Agent';
-                        }
+                        const assignee = users.find(u => u.uid === safeTicket.assignedTo);
+                        if (assignee) assigneeName = assignee.name || assignee.email || 'Agent';
                     }
                     assigneeInfo = `<span><i data-lucide="user-check"></i> ${escapeHtml(assigneeName)}</span>`;
                 }
@@ -1627,9 +1629,7 @@
             return new Date(date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: 'numeric'
             });
         }
 
@@ -1702,8 +1702,78 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // Initialize the application
-        init();
+        // Update navigation based on role
+        function updateNavigationForRole(role) {
+            console.log('Updating navigation for role:', role);
+            
+            // Get all navigation buttons
+            const dashboardBtn = document.getElementById('dashboardNavBtn');
+            const createTicketBtn = document.getElementById('createTicketNavBtn');
+            const myTicketsBtn = document.getElementById('myTicketsNavBtn');
+            const allTicketsBtn = document.getElementById('allTicketsNavBtn');
+            const adminPanelBtn = document.getElementById('adminNavBtn');
+            
+            // Hide all buttons first
+            [dashboardBtn, createTicketBtn, myTicketsBtn, allTicketsBtn, adminPanelBtn].forEach(btn => {
+                if (btn) btn.classList.add('hidden');
+            });
+            
+            // Common buttons for all roles
+            if (dashboardBtn) dashboardBtn.classList.remove('hidden');
+            if (createTicketBtn) createTicketBtn.classList.remove('hidden');
+            if (myTicketsBtn) myTicketsBtn.classList.remove('hidden');
+            
+            // Role-specific buttons
+            if (role === 'admin' || role === 'agent') {
+                if (allTicketsBtn) allTicketsBtn.classList.remove('hidden');
+                if (role === 'admin' && adminPanelBtn) {
+                    adminPanelBtn.classList.remove('hidden');
+                }
+            }
+            
+            console.log('Navigation updated for role:', role);
+            
+            // Set the active section based on role
+            setTimeout(() => {
+                if (role === 'admin') {
+                    showSection('admin-panel');
+                } else {
+                    showSection('dashboard');
+                }
+            }, 100);
+        }
+
+        // Save application data to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('categories', JSON.stringify(categories));
+            localStorage.setItem('currentSection', currentSection);
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Navigation buttons
+            document.getElementById('dashboardNavBtn')?.addEventListener('click', () => showSection('dashboard'));
+            document.getElementById('createTicketNavBtn')?.addEventListener('click', () => showSection('create-ticket'));
+            document.getElementById('myTicketsNavBtn')?.addEventListener('click', () => showSection('my-tickets'));
+            document.getElementById('allTicketsNavBtn')?.addEventListener('click', () => showSection('all-tickets'));
+            document.getElementById('adminNavBtn')?.addEventListener('click', () => showSection('admin-panel'));
+            
+            // Form submissions
+            document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+            document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
+            document.getElementById('createTicketForm')?.addEventListener('submit', handleCreateTicket);
+            document.getElementById('logoutButton')?.addEventListener('click', handleLogout);
+            
+            console.log('Event listeners set up');
+        }
+        
+        // Call init() when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded, initializing app...');
+            init();
+        });
     </script>
 </body>
 </html>
