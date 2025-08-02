@@ -817,6 +817,7 @@
         let categories = [];
         let currentSection = 'dashboard';
         let currentTicket = null;
+        let isUpdatingNavigation = false;
 
         try {
             // Load users from localStorage if available
@@ -824,12 +825,15 @@
             users = savedUsers ? JSON.parse(savedUsers) : [];
             console.log('Initialized users array with', users.length, 'users');
             
-            // Load other data
+            // Load tickets from localStorage
             const savedTickets = localStorage.getItem('tickets');
+            tickets = savedTickets ? JSON.parse(savedTickets) : [];
+            console.log('Initialized tickets array with', tickets.length, 'tickets');
+            
+            // Load other data
             const savedCategories = localStorage.getItem('categories');
             const savedSection = localStorage.getItem('currentSection');
             
-            tickets = savedTickets ? JSON.parse(savedTickets) : [];
             categories = savedCategories ? JSON.parse(savedCategories) : ['technical', 'billing', 'general', 'feature'];
             currentSection = savedSection || 'dashboard';
             
@@ -980,11 +984,18 @@
 
         // Initialize the application
         function init() {
+            console.log('Initializing application...');
+            
             // Initialize icons
             initializeIcons();
             
-            // Initialize UI components
+            // Set up event listeners
             setupEventListeners();
+            
+            // Initialize any other UI components
+            if (document.getElementById('createTicketForm')) {
+                document.getElementById('createTicketForm').addEventListener('submit', handleCreateTicket);
+            }
             
             console.log('Application initialized');
         }
@@ -1052,42 +1063,65 @@
         function handleCreateTicket(e) {
             e.preventDefault();
             
-            const subject = document.getElementById('ticketSubject').value;
+            if (!currentUser) {
+                showNotification('You must be logged in to create a ticket', 'error');
+                showAuth();
+                return;
+            }
+            
+            const subject = document.getElementById('ticketSubject').value.trim();
             const category = document.getElementById('ticketCategory').value;
-            const description = document.getElementById('ticketDescription').value;
+            const description = document.getElementById('ticketDescription').value.trim();
             const attachment = document.getElementById('ticketAttachment').files[0];
             
+            // Validate inputs
+            if (!subject || !category || !description) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+            
             const newTicket = {
-                id: Date.now().toString(),
+                id: 'ticket-' + Date.now().toString(),
                 subject,
                 description,
                 category,
                 status: 'open',
-                createdAt: new Date(),
+                createdAt: new Date().toISOString(),
                 createdBy: currentUser.uid,
+                createdByName: currentUser.name || currentUser.email.split('@')[0],
                 upvotes: 0,
                 downvotes: 0,
                 replies: [],
-                attachment: attachment ? attachment.name : null
+                attachment: attachment ? attachment.name : null,
+                updatedAt: new Date().toISOString()
             };
             
-            tickets.push(newTicket);
+            console.log('Creating new ticket:', newTicket);
             
-            // Save to local storage
-            saveToLocalStorage();
+            // Add to tickets array
+            tickets.unshift(newTicket); // Add to beginning of array
             
-            // Reset form
-            document.getElementById('createTicketForm').reset();
-            
-            showNotification('Ticket created successfully!', 'success');
-            
-            // Simulate email notification
-            setTimeout(() => {
-                showNotification('Email notification sent!', 'info');
-            }, 1000);
-            
-            // Redirect to my tickets
-            showSection('my-tickets');
+            try {
+                // Save to local storage
+                saveToLocalStorage();
+                
+                // Reset form
+                document.getElementById('createTicketForm').reset();
+                
+                showNotification('Ticket created successfully!', 'success');
+                
+                // Update the UI
+                if (currentSection === 'my-tickets' || currentSection === 'all-tickets') {
+                    loadTickets();
+                }
+                
+                // Redirect to my tickets
+                showSection('my-tickets');
+                
+            } catch (error) {
+                console.error('Error saving ticket:', error);
+                showNotification('Error creating ticket. Please try again.', 'error');
+            }
         }
 
         function loadDashboard() {
@@ -1704,43 +1738,55 @@
 
         // Update navigation based on role
         function updateNavigationForRole(role) {
-            console.log('Updating navigation for role:', role);
-            
-            // Get all navigation buttons
-            const dashboardBtn = document.getElementById('dashboardNavBtn');
-            const createTicketBtn = document.getElementById('createTicketNavBtn');
-            const myTicketsBtn = document.getElementById('myTicketsNavBtn');
-            const allTicketsBtn = document.getElementById('allTicketsNavBtn');
-            const adminPanelBtn = document.getElementById('adminNavBtn');
-            
-            // Hide all buttons first
-            [dashboardBtn, createTicketBtn, myTicketsBtn, allTicketsBtn, adminPanelBtn].forEach(btn => {
-                if (btn) btn.classList.add('hidden');
-            });
-            
-            // Common buttons for all roles
-            if (dashboardBtn) dashboardBtn.classList.remove('hidden');
-            if (createTicketBtn) createTicketBtn.classList.remove('hidden');
-            if (myTicketsBtn) myTicketsBtn.classList.remove('hidden');
-            
-            // Role-specific buttons
-            if (role === 'admin' || role === 'agent') {
-                if (allTicketsBtn) allTicketsBtn.classList.remove('hidden');
-                if (role === 'admin' && adminPanelBtn) {
-                    adminPanelBtn.classList.remove('hidden');
-                }
+            // Prevent recursive calls
+            if (isUpdatingNavigation) {
+                console.log('Navigation update already in progress, skipping');
+                return;
             }
             
-            console.log('Navigation updated for role:', role);
+            isUpdatingNavigation = true;
+            console.log('Updating navigation for role:', role);
             
-            // Set the active section based on role
-            setTimeout(() => {
-                if (role === 'admin') {
-                    showSection('admin-panel');
-                } else {
-                    showSection('dashboard');
+            try {
+                // Get all navigation buttons
+                const dashboardBtn = document.getElementById('dashboardNavBtn');
+                const createTicketBtn = document.getElementById('createTicketNavBtn');
+                const myTicketsBtn = document.getElementById('myTicketsNavBtn');
+                const allTicketsBtn = document.getElementById('allTicketsNavBtn');
+                const adminPanelBtn = document.getElementById('adminNavBtn');
+                
+                // Hide all buttons first
+                [dashboardBtn, createTicketBtn, myTicketsBtn, allTicketsBtn, adminPanelBtn].forEach(btn => {
+                    if (btn) btn.classList.add('hidden');
+                });
+                
+                // Common buttons for all roles
+                if (dashboardBtn) dashboardBtn.classList.remove('hidden');
+                if (createTicketBtn) createTicketBtn.classList.remove('hidden');
+                if (myTicketsBtn) myTicketsBtn.classList.remove('hidden');
+                
+                // Role-specific buttons
+                if (role === 'admin' || role === 'agent') {
+                    if (allTicketsBtn) allTicketsBtn.classList.remove('hidden');
+                    if (role === 'admin' && adminPanelBtn) {
+                        adminPanelBtn.classList.remove('hidden');
+                    }
                 }
-            }, 100);
+                
+                console.log('Navigation updated for role:', role);
+                
+                // Only update the section if we're not already showing it
+                const targetSection = role === 'admin' ? 'admin-panel' : 'dashboard';
+                if (currentSection !== targetSection) {
+                    showSection(targetSection);
+                }
+                
+            } catch (error) {
+                console.error('Error updating navigation:', error);
+            } finally {
+                // Always reset the flag, even if there was an error
+                isUpdatingNavigation = false;
+            }
         }
 
         // Save application data to localStorage
@@ -1759,12 +1805,6 @@
             document.getElementById('myTicketsNavBtn')?.addEventListener('click', () => showSection('my-tickets'));
             document.getElementById('allTicketsNavBtn')?.addEventListener('click', () => showSection('all-tickets'));
             document.getElementById('adminNavBtn')?.addEventListener('click', () => showSection('admin-panel'));
-            
-            // Form submissions
-            document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
-            document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
-            document.getElementById('createTicketForm')?.addEventListener('submit', handleCreateTicket);
-            document.getElementById('logoutButton')?.addEventListener('click', handleLogout);
             
             console.log('Event listeners set up');
         }
